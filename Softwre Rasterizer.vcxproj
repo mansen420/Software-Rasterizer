@@ -141,14 +141,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\Desktop\My headers and libraries\Tiny renderer TGA header and cpp file\model.cpp" />
     <ClCompile Include="..\..\..\Desktop\My headers and libraries\Tiny renderer TGA header and cpp file\tgaimage.cpp" />
-    <ClCompile Include="model.cpp" />
     <ClCompile Include="Source.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\Desktop\My headers and libraries\Tiny renderer TGA header and cpp file\tgaimage.h" />
-    <ClInclude Include="geometry.h" />
-    <ClInclude Include="model.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

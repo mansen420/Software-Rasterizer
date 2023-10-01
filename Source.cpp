@@ -30,11 +30,12 @@ int main(int argc, char** argv) {
 			pixel p1{static_cast<int>( ((temp_v1.x + 1.0) / 2.0) * pix_width), static_cast<int>(((temp_v1.y + 1.0) / 2.0) * pix_height) };
 			draw_line(p0, p1, image, white);
 		}
-	}
-	image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
+	} 
+	image.flip_vertically(); //origin at the left bottom corner of the image
 	image.write_tga_file("output.tga");
 	return 0;
 }
+//issue where lines are "diverging" SOLVED	
 void draw_line(const pixel& p1, const pixel& p2, TGAImage& ofile, const TGAColor& line_color)
 {
 	int x0 = p1.x;
@@ -43,9 +44,12 @@ void draw_line(const pixel& p1, const pixel& p2, TGAImage& ofile, const TGAColor
 	int y1 = p2.y;
 
 	bool steep = false;
-	if (x1 - x0 < std::abs(y0 - y1))	//if height more than width
+	if (std::abs(x1 - x0) < std::abs(y0 - y1))	//if height more than width
 	{
-		std::swap(x0, y0), std::swap(x1, y1);
+		//old implementation had x1-x0 without abs(),
+		//but since this is the first statement now, we are not sure that x1>x0,
+		//and as such have to use abs()
+		std::swap(x0, y0), std::swap(x1, y1);	//trasnpose image
 		steep = true;
 	}
 	if (x0 > x1)	//swap if x0 is to the right of x1

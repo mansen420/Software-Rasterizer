@@ -21,19 +21,8 @@
     <ClCompile Include="..\..\..\Desktop\My headers and libraries\Tiny renderer TGA header and cpp file\tgaimage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="model.cpp">
+    <ClCompile Include="..\..\..\Desktop\My headers and libraries\Tiny renderer TGA header and cpp file\model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\Desktop\My headers and libraries\Tiny renderer TGA header and cpp file\tgaimage.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="model.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="geometry.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
