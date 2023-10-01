@@ -365,3 +365,6 @@ FodyWeavers.xsd
 # my own 
 *.tga
 *.png
+*.sln
+*.vcxproj
+*.filters
