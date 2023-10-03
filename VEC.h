@@ -29,7 +29,7 @@ template <typename T> struct vec3
 	vec3() : x(0), y(0), z(0) {}
 	vec3(T _x, T _y, T _z) : x(_x), y(_y), z(_z) {}
 
-	inline vec3<T>& operator^ (const vec3<T>& v) const { return vec3<T>(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x); }
+	inline vec3<T> operator^ (const vec3<T>& v) const { return vec3<T>(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x); }
 	inline T operator* (const vec3<T>& v)        const { return v.x * x + v.y * y + v.z * z; }
 	inline vec3<T>& operator* (const float& t)   const { return vec3<T>(t*x, t*y, t*z); }
 	inline vec3<T>& operator+ (const vec3<T> v)  const { return vec3<T>(v.x + x, v.y + y, v.z + z); }

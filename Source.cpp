@@ -6,30 +6,32 @@
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red = TGAColor(255, 0, 0, 255);
 const TGAColor green = TGAColor(0, 255, 0, 255);
-const int pix_width = 2000;
-const int pix_height = 2000;
+const int pix_width = 1000;
+const int pix_height = 1000;
 
 void draw_line(const pixel& p1, const pixel& p2, TGAImage& ofile, const TGAColor& line_color);
 void draw_triangle_fill(const pixel& p0, const pixel& p1, const pixel& p2, TGAImage& image, const TGAColor& color);
 void draw_triangle_wireframe(const pixel& p0, const pixel& p1, const pixel& p2, TGAImage& image, const TGAColor& color);
+void triangle(pixel* pts, TGAImage& image, TGAColor color);
 using std::vector;
 using std::swap;
+
 int main(int argc, char** argv) {
 	TGAImage image(pix_width, pix_height, TGAImage::RGB);
 	Model african_head = Model("C:/Users/msi/Desktop/african_head.obj");
 	for (int i = 0; i < african_head.nfaces(); i++)
 	{
 		vector<int> face = african_head.face(i);
+		pixel screen_coords[3];
 		for (int j = 0; j < 3; j++)
 		{
-			Vec3f temp_v0 = african_head.vert(face[j]);
-			Vec3f temp_v1 = african_head.vert(face[(j+1)%3]);
-			pixel p0{ static_cast<int>(((temp_v0.x + 1.0) / 2.0) * pix_width), static_cast<int>(((temp_v0.y + 1.0) / 2.0) * pix_height) };
-			pixel p1{static_cast<int>( ((temp_v1.x + 1.0) / 2.0) * pix_width), static_cast<int>(((temp_v1.y + 1.0) / 2.0) * pix_height) };
-			draw_line(p0, p1, image, white);
-
+			screen_coords[j] = pixel(((african_head.vert(face[j]).x + 1.0) / 2.0) * pix_width, ((african_head.vert(face[j]).y + 1.0) / 2.0) * pix_height);
 		}
+		using std::rand;
+		TGAColor random_colors = TGAColor(rand() % 255, rand() % 255, rand() % 255, 255);
+		triangle(screen_coords, image, random_colors);
 	} 
+
 	image.flip_vertically(); //origin at the left bottom corner of the image
 	image.write_tga_file("output.tga");
 	return 0;
@@ -130,5 +132,40 @@ void draw_triangle_fill(const pixel& t0, const pixel& t1, const pixel& t2, TGAIm
 		pixel A{ p1.x + static_cast<int>((alpha) * (p2.x - p1.x)), y };
 		pixel B{ p0.x + static_cast<int>((beta) * (p2.x - p0.x)), y };
 		draw_line(A, B, image, color);
+	}
+}
+vec3f barycentric(pixel* pts, pixel P)
+{
+	//cross product of x intervals and y intervals. the order of the cross product is reversed as opposed to tiny renderer (idk why this works)
+	vec3f orthogonal = vec3f(pts[2].y-pts[0].y, pts[1].y-pts[0].y, pts[0].y-P.y)^vec3f(pts[2].x - pts[0].x, pts[1].x - pts[0].x, pts[0].x - P.x);
+	/* `pts` and `P` has integer value as coordinates
+   so `abs(u[2])` < 1 means `u[2]` is 0, that means
+   triangle is degenerate, in this case return something with negative coordinates */
+	if (orthogonal.z < 1) return vec3f(-1, 1, 1);
+	return vec3f(1.f - (orthogonal.x + orthogonal.y) / orthogonal.z , orthogonal.y / orthogonal.z , orthogonal.x / orthogonal.z);
+}
+void triangle(pixel* pts, TGAImage& image, TGAColor color)
+{
+	pixel bounding_box_min = vec2i(image.get_width() - 1, image.get_height() - 1);
+	pixel bounding_box_max = vec2i(0, 0);
+	pixel clamp = bounding_box_min;
+	for (int i = 0; i < 3; i++)
+	{
+		bounding_box_min.x = std::max(0, std::min(bounding_box_min.x, pts[i].x));
+		bounding_box_min.y = std::max(0, std::min(bounding_box_min.y, pts[i].y));
+
+		bounding_box_max.x = std::min(clamp.x, std::max(bounding_box_max.x, pts[i].x));
+		bounding_box_max.y = std::min(clamp.y, std::max(bounding_box_max.y, pts[i].y));
+	}
+	pixel P;
+	for (P.x = bounding_box_min.x; P.x <= bounding_box_max.x; P.x++)
+	{
+		for (P.y = bounding_box_min.y; P.y <= bounding_box_max.y; P.y++)
+		{
+			vec3f screen = barycentric(pts, P);
+			if (screen.x < 0 || screen.y < 0 || screen.z < 0)
+				continue;
+			image.set(P.x, P.y, color);
+		}
 	}
 }
