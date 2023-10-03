@@ -31,13 +31,13 @@ template <typename T> struct vec3
 
 	inline vec3<T> operator^ (const vec3<T>& v) const { return vec3<T>(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x); }
 	inline T operator* (const vec3<T>& v)        const { return v.x * x + v.y * y + v.z * z; }
-	inline vec3<T>& operator* (const float& t)   const { return vec3<T>(t*x, t*y, t*z); }
-	inline vec3<T>& operator+ (const vec3<T> v)  const { return vec3<T>(v.x + x, v.y + y, v.z + z); }
-	inline vec3<T>& operator-()					 const { return vec3<T>(-x, -y, -z); }
-	inline vec3<T>& operator-(const vec3<T>& u)  const { return *this + (-u); }
+	inline vec3<T> operator* (const float& t)   const { return vec3<T>(t*x, t*y, t*z); }
+	inline vec3<T> operator+ (const vec3<T> v)  const { return vec3<T>(v.x + x, v.y + y, v.z + z); }
+	inline vec3<T> operator-()					 const { return vec3<T>(-x, -y, -z); }
+	inline vec3<T> operator-(const vec3<T>& u)  const { return *this + (-u); }
 
 	float norm() const { return std::sqrt(x * x + y * y + z * z); }
-	vec3<T> normalize(T l = 1) { *this = (*this) * (l / norm); return *this; }
+	vec3<T> normalize(T l = 1) { *this = (*this) * (l / norm()); return *this; }
 };
 
 typedef vec2<int> pixel;

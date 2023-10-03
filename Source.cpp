@@ -8,13 +8,13 @@ const TGAColor red = TGAColor(255, 0, 0, 255);
 const TGAColor green = TGAColor(0, 255, 0, 255);
 const int pix_width = 1000;
 const int pix_height = 1000;
+using std::vector;
+using std::swap;
 
 void draw_line(const pixel& p1, const pixel& p2, TGAImage& ofile, const TGAColor& line_color);
 void draw_triangle_fill(const pixel& p0, const pixel& p1, const pixel& p2, TGAImage& image, const TGAColor& color);
 void draw_triangle_wireframe(const pixel& p0, const pixel& p1, const pixel& p2, TGAImage& image, const TGAColor& color);
 void triangle(pixel* pts, TGAImage& image, TGAColor color);
-using std::vector;
-using std::swap;
 
 int main(int argc, char** argv) {
 	TGAImage image(pix_width, pix_height, TGAImage::RGB);
@@ -27,9 +27,17 @@ int main(int argc, char** argv) {
 		{
 			screen_coords[j] = pixel(((african_head.vert(face[j]).x + 1.0) / 2.0) * pix_width, ((african_head.vert(face[j]).y + 1.0) / 2.0) * pix_height);
 		}
-		using std::rand;
-		TGAColor random_colors = TGAColor(rand() % 255, rand() % 255, rand() % 255, 255);
-		triangle(screen_coords, image, random_colors);
+		vec3f light_direction = vec3f(0.0f, -0.5f, -0.5f);
+		//calculate normal 
+		vec3f ab = vec3f(african_head.vert(face[0]).x, african_head.vert(face[0]).y, african_head.vert(face[0]).z)
+			- vec3f(african_head.vert(face[1]).x, african_head.vert(face[1]).y, african_head.vert(face[1]).z);
+		vec3f ac = vec3f(african_head.vert(face[0]).x, african_head.vert(face[0]).y, african_head.vert(face[0]).z)
+			- vec3f(african_head.vert(face[2]).x, african_head.vert(face[2]).y, african_head.vert(face[2]).z);
+		vec3f normal = ac ^ ab;
+		float intensity = normal.normalize() * light_direction.normalize();
+		intensity = std::max(intensity, 0.0f);
+		TGAColor ambient = TGAColor(0.05*255, 0.1f*255, 0.2f*255, 255);
+		triangle(screen_coords, image, TGAColor(std::min(255*intensity+ambient.r, 255.0f),std::min((0.85f*255.0f)*intensity+ambient.g, 255.0f),std::min((0.7f*255)*intensity+ambient.b, 255.0f), 255));
 	} 
 
 	image.flip_vertically(); //origin at the left bottom corner of the image
