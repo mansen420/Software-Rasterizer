@@ -1,20 +1,13 @@
 #include "tgaimage.h"
 #include <iostream>
 #include "model.h"
+#include "VEC.h"
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red = TGAColor(255, 0, 0, 255);
 const TGAColor green = TGAColor(0, 255, 0, 255);
 const int pix_width = 2000;
 const int pix_height = 2000;
-struct pixel
-{
-	int x, y = 0;
-	pixel(int x, int y)
-	{
-		this->x = x; this->y = y;
-	}
-};
 
 void draw_line(const pixel& p1, const pixel& p2, TGAImage& ofile, const TGAColor& line_color);
 void draw_triangle_fill(const pixel& p0, const pixel& p1, const pixel& p2, TGAImage& image, const TGAColor& color);
