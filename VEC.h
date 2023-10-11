@@ -36,6 +36,8 @@ template <typename T> struct vec3
 	inline vec3<T> operator-()					 const { return vec3<T>(-x, -y, -z); }
 	inline vec3<T> operator-(const vec3<T>& u)  const { return *this + (-u); }
 
+	inline T at(int idx) const { return raw[idx]; }
+
 	float norm() const { return std::sqrt(x * x + y * y + z * z); }
 	vec3<T> normalize(T l = 1) { *this = (*this) * (l / norm()); return *this; }
 };
