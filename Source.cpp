@@ -20,11 +20,32 @@ void triangle(pixel* pts, TGAImage& image, TGAColor color);
 void draw_square(const pixel& p, TGAImage& image, const TGAColor& color);
 void triangle(vec3f* pts, float* zBuffer, TGAImage& image, TGAColor color);
 vec3f barycentric(vec3f A, vec3f B, vec3f C, vec3f P);
+void drawTexture_testing(TGAColor* textureBuffer, TGAImage& image);
 float zBuffer[pix_width * pix_height];
 int main(int argc, char** argv) {
 	TGAImage image(pix_width, pix_height, TGAImage::RGB);
 	Model african_head = Model("C:/Users/msi/Desktop/african_head.obj");
 
+	//texture loading
+	TGAImage texture;
+	if (texture.read_tga_file("C:/Users/msi/Desktop/african_head_diffuse.tga"))
+	{
+		std::cout << "loaded texture\n";
+	}
+	else
+		std::cout << "FAILED to load texture\n";
+	TGAColor* textureColorBuffer = new TGAColor[texture.get_width() * texture.get_height()];
+	for (int i = 0; i < texture.get_width() * texture.get_height()*texture.get_bytespp(); i+=texture.get_bytespp())
+	{
+		unsigned char* bytes = new unsigned char[texture.get_bytespp()];
+		for (int j = 0; j < texture.get_bytespp(); j++)
+		{
+			bytes[j] = texture.buffer()[i+j];
+		}
+		textureColorBuffer[i / texture.get_bytespp()] = TGAColor(bytes, texture.get_bytespp());
+		delete[] bytes;		//YES IT WORKED!!!!!!
+	}
+	
 	//initialize zBuffer with minus infinity
 	for (int i = 0; i < pix_width * pix_height; i++)
 	{
@@ -41,7 +62,7 @@ int main(int argc, char** argv) {
 		{
 			screen_coords[j] = vec3f(int(((african_head.vert(face[j]).x + 1.0) / 2.0) * pix_width), int(((african_head.vert(face[j]).y + 1.0) / 2.0) * pix_height), african_head.vert(face[j]).z);
 		}
-		vec3f light_direction = vec3f(0.0f, -0.5f, -0.5f);
+		vec3f light_direction = vec3f(-0.5f, -0.5f, -0.5f);
 
 		//calculate normal 
 		vec3f ab = vec3f(african_head.vert(face[0]).x, african_head.vert(face[0]).y, african_head.vert(face[0]).z)
@@ -51,7 +72,7 @@ int main(int argc, char** argv) {
 		vec3f normal = ac ^ ab;
 		float intensity = normal.normalize() * light_direction.normalize();
 		intensity = std::max(intensity, 0.0f);
-		TGAColor ambient = TGAColor(0.05*255, 0.1f*255, 0.2f*255, 255);
+		TGAColor ambient = TGAColor(0.05*255, 0.1f*255, 0.12f*255, 255);
 	/*	draw_line(screen_coords[0], screen_coords[1], image, white);
 		draw_line(screen_coords[1], screen_coords[2], image, white);
 		draw_line(screen_coords[2], screen_coords[0], image, white);
@@ -60,27 +81,14 @@ int main(int argc, char** argv) {
 		draw_square(screen_coords[2], image, red); */
 		using std::rand;
 		TGAColor random_color(rand() % 255, rand() % 255, rand() % 255, 255);
-		TGAColor phong_diffuse = TGAColor(std::min(255 * intensity + ambient.r, 255.0f),
-			std::min((0.85f * 255.0f) * intensity + ambient.g, 255.0f),
-			std::min((0.7f * 255) * intensity + ambient.b, 255.0f), 255);
-		triangle(screen_coords, zBuffer, image, phong_diffuse);
+		TGAColor phong_diffuse = TGAColor(std::min(255 * 0.8f * intensity + ambient.r, 255.0f),
+			std::min((0.8f * 255.0f) * intensity + ambient.g, 255.0f),
+			std::min((0.8f * 255) * intensity + ambient.b, 255.0f), 255);
+	//	triangle(screen_coords, zBuffer, image, phong_diffuse);
 	}
-	vec3f depthTriangle[] =		//not rendering. why?
-	{
-		vec3f(1500, 1500, 0.2),
-		vec3f(1500, 500, 0.2),
-		vec3f(500, 1000, -1.0)
-	};
-	pixel depthPix[] =
-	{
-		pixel(depthTriangle[0].x, depthTriangle[0].y),
-		pixel(depthTriangle[1].x, depthTriangle[1].y),
-		pixel(depthTriangle[2].x, depthTriangle[2].y)
-			};
-//	triangle(depthTriangle, zBuffer, image, white);
-//	triangle(depthPix, image, white);
-//	draw_triangle_fill(pixel(depthTriangle[0].x, depthTriangle[0].y), pixel(depthTriangle[1].x, depthTriangle[1].y), pixel(depthTriangle[2].x, depthTriangle[2].y)
-//		, image, white);
+	TGAImage textureFile(texture.get_width(), texture.get_width(), texture.get_bytespp());
+	drawTexture_testing(textureColorBuffer, textureFile);
+
 	const auto end = std::chrono::high_resolution_clock::now();
 	const std::chrono::duration<double> diff = end - start;
 	std::cout << "Execution : " << 1.0 / diff.count() << " FPS roughly " << std::endl;
@@ -89,7 +97,17 @@ int main(int argc, char** argv) {
 
 	return 0;
 }
-
+void drawTexture_testing(TGAColor* textureBuffer, TGAImage& image)
+{
+	for (int i = 0; i < image.get_height(); i++)
+	{
+		for (int j = 0; j < image.get_width(); j++)
+		{
+			image.set(j, i, textureBuffer[(j+i*image.get_width())]);
+		}
+	}
+	image.write_tga_file("texture.tga");
+}
 void draw_line(const pixel& p1, const pixel& p2, TGAImage& ofile, const TGAColor& line_color)
 {
 	int x0 = p1.x;
@@ -314,7 +332,7 @@ void triangle(vec3f* pts, float* zBuffer ,TGAImage& image, TGAColor color)
 			{
 				zBuffer[int(P.x + P.y * pix_width)] = P.z;
 				TGAColor depth = TGAColor((zBuffer[int(P.x + P.y * pix_width)]+0.5)/2 * 255, (zBuffer[int(P.x + P.y * pix_width)] + 0.5)/2 * 255, (zBuffer[int(P.x + P.y * pix_width)] + 0.5)/2 * 255, 255);
-				image.set(P.x, P.y, depth);
+				image.set(P.x, P.y, color);
 			}
 		}
 	}
