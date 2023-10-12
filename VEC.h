@@ -1,4 +1,6 @@
-#pragma once
+#ifndef VEC
+#define VEC
+
 #include <cmath>
 
 template <typename T> struct vec2
@@ -12,7 +14,7 @@ template <typename T> struct vec2
 	vec2 (T _u, T _v) : u(_u), v(_v){}
 	vec2 () : u(0),v(0){}
 
-	inline vec2<T>& operator +(const vec2<T>& u) const { return vec2<T>(u.x + x, u.y + y); }
+	inline vec2<T> operator +(const vec2<T>& u) const { return vec2<T>(u.x + x, u.y + y); }
 	inline vec2<T>& operator -()				 const { return vec2<T>(-x, -y); }
 	inline vec2<T>& operator -(const vec2<T>& u) const { return vec2<T>(*this+(-u)); }
 	inline vec2<T>& operator *(const vec2<T>& u) const { return vec2<T>(x * u.x, y * u.y); }
@@ -47,3 +49,4 @@ typedef vec2<int> vec2i;
 typedef vec2<float> vec2f;
 typedef vec3<int> vec3i;
 typedef vec3<float> vec3f;
+#endif // !VEC

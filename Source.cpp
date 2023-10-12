@@ -18,7 +18,7 @@ void draw_triangle_fill(const pixel& p0, const pixel& p1, const pixel& p2, TGAIm
 void draw_triangle_wireframe(const pixel& p0, const pixel& p1, const pixel& p2, TGAImage& image, const TGAColor& color);
 void triangle(pixel* pts, TGAImage& image, TGAColor color);
 void draw_square(const pixel& p, TGAImage& image, const TGAColor& color);
-void triangle(vec3f* pts, float* zBuffer, TGAImage& image, TGAColor color);
+void triangle(vec3f* pts, float* zBuffer, TGAImage& image, TGAColor color, vec2f* texture_coords, TGAColor* texture_data, int textureHeight, int textureWidth);
 vec3f barycentric(vec3f A, vec3f B, vec3f C, vec3f P);
 void drawTexture_testing(TGAColor* textureBuffer, TGAImage& image);
 float zBuffer[pix_width * pix_height];
@@ -29,11 +29,10 @@ int main(int argc, char** argv) {
 	//texture loading
 	TGAImage texture;
 	if (texture.read_tga_file("C:/Users/msi/Desktop/african_head_diffuse.tga"))
-	{
 		std::cout << "loaded texture\n";
-	}
 	else
 		std::cout << "FAILED to load texture\n";
+	texture.flip_vertically();
 	TGAColor* textureColorBuffer = new TGAColor[texture.get_width() * texture.get_height()];
 	for (int i = 0; i < texture.get_width() * texture.get_height()*texture.get_bytespp(); i+=texture.get_bytespp())
 	{
@@ -55,16 +54,24 @@ int main(int argc, char** argv) {
 	const auto start = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < african_head.nfaces(); i++)
 	{
-
+		//load vertices
 		vector<int> face = african_head.face(i);
 		vec3f screen_coords[3];
 		for (int j = 0; j < 3; j++)
 		{
-			screen_coords[j] = vec3f(int(((african_head.vert(face[j]).x + 1.0) / 2.0) * pix_width), int(((african_head.vert(face[j]).y + 1.0) / 2.0) * pix_height), african_head.vert(face[j]).z);
+			screen_coords[j] = vec3f(int(((african_head.vert(face[j]).x + 1.0) / 2.0) * pix_width),
+										int(((african_head.vert(face[j]).y + 1.0) / 2.0) * pix_height), 
+										african_head.vert(face[j]).z);
 		}
-		vec3f light_direction = vec3f(-0.5f, -0.5f, -0.5f);
-
+		//load textures
+		vector<int> texFace = african_head.texIndices(i);
+		vec2f tex_coords[3];
+		for (int j = 0; j < 3; j++)
+		{
+			tex_coords[j] = vec2f(african_head.tex(texFace[j]).x, african_head.tex(texFace[j]).y);
+		}
 		//calculate normal 
+		vec3f light_direction = vec3f(-0.5f, -0.5f, -0.5f);
 		vec3f ab = vec3f(african_head.vert(face[0]).x, african_head.vert(face[0]).y, african_head.vert(face[0]).z)
 			- vec3f(african_head.vert(face[1]).x, african_head.vert(face[1]).y, african_head.vert(face[1]).z);
 		vec3f ac = vec3f(african_head.vert(face[0]).x, african_head.vert(face[0]).y, african_head.vert(face[0]).z)
@@ -73,25 +80,18 @@ int main(int argc, char** argv) {
 		float intensity = normal.normalize() * light_direction.normalize();
 		intensity = std::max(intensity, 0.0f);
 		TGAColor ambient = TGAColor(0.05*255, 0.1f*255, 0.12f*255, 255);
-	/*	draw_line(screen_coords[0], screen_coords[1], image, white);
-		draw_line(screen_coords[1], screen_coords[2], image, white);
-		draw_line(screen_coords[2], screen_coords[0], image, white);
-		draw_square(screen_coords[0], image, red);
-		draw_square(screen_coords[1], image, red);
-		draw_square(screen_coords[2], image, red); */
 		using std::rand;
 		TGAColor random_color(rand() % 255, rand() % 255, rand() % 255, 255);
 		TGAColor phong_diffuse = TGAColor(std::min(255 * 0.8f * intensity + ambient.r, 255.0f),
 			std::min((0.8f * 255.0f) * intensity + ambient.g, 255.0f),
 			std::min((0.8f * 255) * intensity + ambient.b, 255.0f), 255);
-	//	triangle(screen_coords, zBuffer, image, phong_diffuse);
+		triangle(screen_coords, zBuffer, image, phong_diffuse, tex_coords, textureColorBuffer, texture.get_height(), texture.get_width());
 	}
-	TGAImage textureFile(texture.get_width(), texture.get_width(), texture.get_bytespp());
-	drawTexture_testing(textureColorBuffer, textureFile);
 
 	const auto end = std::chrono::high_resolution_clock::now();
 	const std::chrono::duration<double> diff = end - start;
 	std::cout << "Execution : " << 1.0 / diff.count() << " FPS roughly " << std::endl;
+	delete[] textureColorBuffer;
 	image.flip_vertically(); //origin at the left bottom corner of the image
 	image.write_tga_file("output.tga");
 
@@ -123,14 +123,6 @@ void draw_line(const pixel& p1, const pixel& p2, TGAImage& ofile, const TGAColor
 		//and as such have to use abs()
 		std::swap(x0, y0), std::swap(x1, y1);	//trasnpose image
 		steep = true;
-	}
-	if (x0 > x1)	//swap if x0 is to the right of x1
-	{
-		//#CAUTION 
-		//executing this swapping operation before the tranpose operation above
-		//introduces logic issues such as not rendering p(100, 700) to p(200,200)
-		//this issue will be investigated further 
-		std::swap(x0, x1), std::swap(y0, y1);
 	}
 	int y = y0;
 	int dy = y1 - y0;
@@ -301,7 +293,7 @@ vec3f barycentric(vec3f A, vec3f B, vec3f C, vec3f P)
 	//degenerate triangle
 	return vec3f(-1, 1, 1);
 }
-void triangle(vec3f* pts, float* zBuffer ,TGAImage& image, TGAColor color)
+void triangle(vec3f* pts, float* zBuffer ,TGAImage& image, TGAColor color, vec2f texture_coords[3], TGAColor* texture_data, int textureHeight, int textureWidth)
 {
 	vec2f bounding_box_min = vec2f(image.get_width() - 1, image.get_height() - 1);
 	vec2f bounding_box_max = vec2f(0, 0);
@@ -324,15 +316,25 @@ void triangle(vec3f* pts, float* zBuffer ,TGAImage& image, TGAColor color)
 			if (screen.x < 0 || screen.y < 0 || screen.z < 0)
 				continue;
 			P.z = 0;
+			vec2f fragmentTexCoord = vec2f(0.0f,0.0f);
 			for (int i = 0; i < 3; i++)
-			{
+			{	//interpolate z 
 				P.z += pts[i].z * screen.raw[i];
+				//interpolate texture coords
+				fragmentTexCoord.x += texture_coords[i].x * screen.raw[i];
+				fragmentTexCoord.y += texture_coords[i].y * screen.raw[i];
 			}
+			//map interpolated coordinate to image space
+			vec2i fragmentScreenSpace = vec2i(fragmentTexCoord.x * textureWidth, fragmentTexCoord.y * textureHeight);
+
+			TGAColor fragmentTextureColor = texture_data[fragmentScreenSpace.x+fragmentScreenSpace.y*textureWidth];
 			if (zBuffer[int(P.x + P.y * pix_width)] < P.z)
 			{
 				zBuffer[int(P.x + P.y * pix_width)] = P.z;
 				TGAColor depth = TGAColor((zBuffer[int(P.x + P.y * pix_width)]+0.5)/2 * 255, (zBuffer[int(P.x + P.y * pix_width)] + 0.5)/2 * 255, (zBuffer[int(P.x + P.y * pix_width)] + 0.5)/2 * 255, 255);
-				image.set(P.x, P.y, color);
+				image.set(P.x, P.y, TGAColor(((float)color.r/255)*fragmentTextureColor.r, fragmentTextureColor.g* ((float)color.g / 255), fragmentTextureColor.b*((float)color.b / 255), 255));
+				//TGAColor(color.r*fragmentTextureColor.r, color.g*fragmentTextureColor.g, color.b*fragmentTextureColor.b, color.a)
+						// phong*textureColor^
 			}
 		}
 	}
